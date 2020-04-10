@@ -134,7 +134,9 @@ func (l *Log) createFiles(level string, needRequestLog bool, options ...LogOptio
 	adapters[FileTypeRequest] = NewZapAdapter(fmt.Sprintf("%s.Request", l.Path), InfoLevel)
 	l.adapters = adapters
 
+	// options为回调函数,用来作为log对象的中间件进行调用
 	for _, opt := range options {
+		// 将log对象作为参数传入回调函数中
 		opt.apply(l)
 	}
 
@@ -187,6 +189,8 @@ func Info(args ...interface{}) {
 	}
 }
 
+
+
 func Infof(template string, args ...interface{}) {
 	if logger == nil {
 		return
@@ -205,6 +209,17 @@ func Infow(msg string, keysAndValues ...interface{}) {
 	if adapter, ok := logger.adapters[FileTypeLog]; ok {
 		adapter.Infow(msg, keysAndValues...)
 	}
+}
+
+func Output(calldepth int, s string) error {
+	Info(s)
+	return nil
+}
+func Println(v ...interface{}) {
+	Info(v)
+}
+func Printf(format string, v ...interface{}) {
+	Infof(format,v)
 }
 
 func Warn(args ...interface{}) {
@@ -327,12 +342,12 @@ func Fatalw(msg string, keysAndValues ...interface{}) {
 	}
 }
 
+// 参数keysAndValues为一个切片,元素1为key,元素2为val;以此类推.
 func RequestLogInfow(keysAndValues ...interface{}) {
 	if logger == nil || !logger.NeedRequestLog {
 		return
 	}
-
 	if adapter, ok := logger.adapters[FileTypeRequest]; ok {
-		adapter.Infow("", keysAndValues...)
+		adapter.Info(keysAndValues...)
 	}
 }
