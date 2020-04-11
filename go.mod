@@ -7,4 +7,4 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
 
-//replace github.com/terryliu/log/v2 latest => ../log
+//replace github.com/terryliu/log/v2 v2.1.6 => ../log
