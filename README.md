@@ -5,7 +5,7 @@ base on zap&lumberjack, an easy using logger module
 ```go
 package main
 
-import "github.com/terryliu/log.v2"
+import "github.com/terryliu/log/v2"
 
 func main() {
 	// Init用来初始化设置
