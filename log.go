@@ -81,7 +81,13 @@ func SetCaller(caller bool) LogOption {
 		}
 	})
 }
-
+func SetCallerDeep(callerDeep int) LogOption {
+	return logOptionFunc(func(log *Log) {
+		for i, _ := range log.adapters {
+			log.adapters[i].setCallerDeep(callerDeep)
+		}
+	})
+}
 // Init init logger
 func Init(path, level string, needRequestLog bool, options ...LogOption) {
 	logger = &Log{Path: path, Level: level}

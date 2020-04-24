@@ -14,6 +14,7 @@ type zapAdapter struct {
 	MaxAge      int    // 日志文件保存的时间，单位(天)
 	Compress    bool   // 是否压缩
 	Caller      bool   // 日志是否需要显示调用位置
+	CallerDeep	int 	// 调用文件回显的深度
 
 	logger *zap.Logger
 	sugar  *zap.SugaredLogger
@@ -38,16 +39,19 @@ func (z *zapAdapter) setCompress(compress bool) {
 func (z *zapAdapter) setCaller(caller bool) {
 	z.Caller = caller
 }
-
+func (z *zapAdapter) setCallerDeep(callerDeep int) {
+	z.CallerDeep = callerDeep
+}
 func NewZapAdapter(path, level string) *zapAdapter {
 	return &zapAdapter{
 		Path:        path,
 		Level:       level,
-		MaxFileSize: 1024,
-		MaxBackups:  3,
+		MaxFileSize: 500,
+		MaxBackups:  5,
 		MaxAge:      7,
 		Compress:    true,
 		Caller:      false,
+		CallerDeep:2,
 	}
 }
 
@@ -59,6 +63,7 @@ func (zapAdapter *zapAdapter) createLumberjackHook() *lumberjack.Logger {
 		MaxBackups: zapAdapter.MaxBackups,
 		MaxAge:     zapAdapter.MaxAge,
 		Compress:   zapAdapter.Compress,
+		LocalTime:	true,
 	}
 }
 
@@ -86,9 +91,10 @@ func (zapAdapter *zapAdapter) Build() {
 	cnf := zapcore.NewJSONEncoder(conf)
 	core := zapcore.NewCore(cnf, w, level)
 
+
 	zapAdapter.logger = zap.New(core)
 	if zapAdapter.Caller {
-		zapAdapter.logger = zapAdapter.logger.WithOptions(zap.AddCaller(), zap.AddCallerSkip(2))
+		zapAdapter.logger = zapAdapter.logger.WithOptions(zap.AddCaller(), zap.AddCallerSkip(zapAdapter.CallerDeep))
 	}
 	zapAdapter.sugar = zapAdapter.logger.Sugar()
 }
