@@ -1,4 +1,4 @@
-module github.com/terryliu/log/v2
+module github.com/TerryLiu/log/v2
 
 go 1.13
 
@@ -7,4 +7,4 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
 
-//replace github.com/terryliu/log/v2 v2.2.0 => ../log
+//replace github.com/TerryLiu/log/v2 v2.2.0 => ../log
