@@ -7,7 +7,7 @@ import (
 
 func main() {
 	// Init用来初始化设置
-	// 参数1:设置日志路径
+	// 参数1:设置日志路径 
 	// 参数2:日志输出的级别
 	// 参数3:是否需要请求类型的日志；默认情况下普通日志格式为json，请求类型日志格式为csv；
 	// 参数4:从这个参数开始,后面的参数都是LogOption结构的回调函数,比如下面的例子为设置是否显示Caller,还可以使用log.SetCallerDeep来设置深度；用log.SetLogType("csv")可将普通日志格式设置为csv, 用log.SetRequestType("json")可将请求日志设置为json格式；
