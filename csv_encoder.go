@@ -509,23 +509,16 @@ func (enc *csvEncoder) tryAddRuneSelf(b byte) bool {
 		return false
 	}
 	// 检查b是否在可打印字符范围内（从32到126），并且不是反斜杠（\）和双引号（"）。如果是，可以直接添加到缓冲区。
-	if 0x20 <= b && b != '\\' && b != '"' {
+	if 0x20 <= b && b != '"' {
 		enc.buf.AppendByte(b)
 		return true
 	}
 	switch b {
-	case '\\', '"':
-		enc.buf.AppendByte('\\')
+	case '"':
+		enc.buf.AppendByte('"')
 		enc.buf.AppendByte(b)
-	case '\n':
-		enc.buf.AppendByte('\\')
-		enc.buf.AppendByte('n')
-	case '\r':
-		enc.buf.AppendByte('\\')
-		enc.buf.AppendByte('r')
-	case '\t':
-		enc.buf.AppendByte('\\')
-		enc.buf.AppendByte('t')
+	case '\n', '\r', '\t':
+		enc.buf.AppendByte(' ')
 	default:
 		// Encode bytes < 0x20, except for the escape sequences above.
 		// 对于其他小于0x20的不可打印字符，使用Unicode转义序列\u后跟两位十六进制数来表示。

@@ -22,6 +22,7 @@ func main() {
 
 	// 请求数据的日志文件
 	log.RequestLogInfo([]string{"key,0000000000", "val,00000000", "k111111", "v1111111111"})
+	log.RequestLogInfo("{\"column\": \"002004003\", \"industryCode\": \"\",\n    \"industryName\": \"\",\n    \"emIndustryCode\": \"\",\n    \"indvInduCode\": \"481\"}")
 	log.RequestLogInfof("哈喽,艾瑞巴蒂%s,我是带体积限制功能的滚动异步日志套装.基于Zap和lumberjack.", "-待插入的变量值-")
 	log.RequestLogInfow("哈喽,这里演示csv的内容中包含逗号的效果", zap.String("key,00000000", "val11111"), zap.String("k111111", "v11111,11111"))
 
