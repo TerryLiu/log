@@ -79,16 +79,21 @@ func (enc *csvEncoder) clone() *csvEncoder {
 func (enc *csvEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buf.Buffer, error) {
 	final := enc.clone()
 
+	if final.LevelKey != "" {
+		cur := final.buf.Len()
+		final.EncodeLevel(ent.Level, final)
+		if cur == final.buf.Len() {
+			final.AppendString(ent.Level.String())
+		}
+	}
 	// Add Time as the second field.
-	final.AddTime("Time", ent.Time)
+	if final.TimeKey != "" {
+		final.AddTime(final.TimeKey, ent.Time)
+	}
 
-	// Add Caller information as the fifth field.
-	// enc.addKey("Caller")
-	final.addElementSeparator()
 	if ent.Caller.Defined {
+		final.addElementSeparator()
 		final.AddString("", ent.Caller.String())
-	} else {
-		final.AddString("", "-") // or any other placeholder for undefined caller
 	}
 
 	// Add Message as the fourth field.
