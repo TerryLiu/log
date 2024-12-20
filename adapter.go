@@ -9,15 +9,20 @@ import (
 type zapAdapter struct {
 	Path        string // 文件绝对地址，如：/home/homework/neso/file.log
 	Level       string // 日志输出的级别
+	LogType     string // 日志格式类型.支持:json;csv
 	MaxFileSize int    // 日志文件大小的最大值，单位(M)
 	MaxBackups  int    // 最多保留备份数
 	MaxAge      int    // 日志文件保存的时间，单位(天)
 	Compress    bool   // 是否压缩
 	Caller      bool   // 日志是否需要显示调用位置
-	CallerDeep	int 	// 调用文件回显的深度
+	CallerDeep  int    // 调用文件回显的深度
 
 	logger *zap.Logger
 	sugar  *zap.SugaredLogger
+}
+
+func (z *zapAdapter) setLogType(logType string) {
+	z.LogType = logType
 }
 
 func (z *zapAdapter) setMaxFileSize(size int) {
@@ -42,16 +47,17 @@ func (z *zapAdapter) setCaller(caller bool) {
 func (z *zapAdapter) setCallerDeep(callerDeep int) {
 	z.CallerDeep = callerDeep
 }
-func NewZapAdapter(path, level string) *zapAdapter {
+func NewZapAdapter(path, level, logType string) *zapAdapter {
 	return &zapAdapter{
 		Path:        path,
 		Level:       level,
+		LogType:     logType,
 		MaxFileSize: 500,
 		MaxBackups:  5,
 		MaxAge:      7,
 		Compress:    true,
 		Caller:      false,
-		CallerDeep:2,
+		CallerDeep:  2,
 	}
 }
 
@@ -63,14 +69,18 @@ func (zapAdapter *zapAdapter) createLumberjackHook() *lumberjack.Logger {
 		MaxBackups: zapAdapter.MaxBackups,
 		MaxAge:     zapAdapter.MaxAge,
 		Compress:   zapAdapter.Compress,
-		LocalTime:	true,
+		LocalTime:  true,
 	}
 }
 
-func (zapAdapter *zapAdapter) Build() {
+// 根据配置的参数来初始化日志对象
+func (zapAdapter *zapAdapter) Init() {
 	w := zapcore.AddSync(zapAdapter.createLumberjackHook())
 
 	var level zapcore.Level
+	var conf zapcore.EncoderConfig
+	var cnf zapcore.Encoder
+
 	switch zapAdapter.Level {
 	case "debug":
 		level = zap.DebugLevel
@@ -85,12 +95,17 @@ func (zapAdapter *zapAdapter) Build() {
 	default:
 		level = zap.InfoLevel
 	}
+	// 除非指定了csv, 否则默认使用json内容格式
+	switch zapAdapter.LogType {
+	case "csv":
 
-	conf := zap.NewProductionEncoderConfig()
-	conf.EncodeTime = zapcore.ISO8601TimeEncoder
-	cnf := zapcore.NewJSONEncoder(conf)
+	default:
+		conf = zap.NewProductionEncoderConfig()
+		conf.EncodeTime = zapcore.ISO8601TimeEncoder
+		cnf = zapcore.NewJSONEncoder(conf)
+	}
+
 	core := zapcore.NewCore(cnf, w, level)
-
 
 	zapAdapter.logger = zap.New(core)
 	if zapAdapter.Caller {

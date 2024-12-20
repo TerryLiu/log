@@ -18,12 +18,12 @@ var (
 	_pool = buf.NewPool()
 )
 
-var _vsvPool = sync.Pool{New: func() interface{} {
+var _csvPool = sync.Pool{New: func() interface{} {
 	return &csvEncoder{}
 }}
 
 func getCsvEncoder() *csvEncoder {
-	return _vsvPool.Get().(*csvEncoder)
+	return _csvPool.Get().(*csvEncoder)
 }
 
 func putCsvEncoder(enc *csvEncoder) {
@@ -36,7 +36,7 @@ func putCsvEncoder(enc *csvEncoder) {
 	enc.openNamespaces = 0
 	enc.reflectBuf = nil
 	enc.reflectEnc = nil
-	_vsvPool.Put(enc)
+	_csvPool.Put(enc)
 }
 
 // csvEncoder is a custom zapcore.Encoder, used to output CSV formatted logs.
@@ -56,7 +56,7 @@ func NewCSVEncoder(cfg zapcore.EncoderConfig) zapcore.Encoder {
 	return &csvEncoder{
 		EncoderConfig: &cfg,
 		buf:           _pool.Get(),
-		spaced:        true,
+		spaced:        false,
 	}
 }
 
@@ -151,7 +151,7 @@ func (enc *csvEncoder) AddUint64(key string, val uint64) {
 // EncodeEntry encodes the log entry.
 func (enc *csvEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buf.Buffer, error) {
 	final := enc.clone()
-
+	xxx
 	// Add Level as the first field.
 	enc.addKey("Level")
 	enc.addElementSeparator()

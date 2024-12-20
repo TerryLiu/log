@@ -19,8 +19,8 @@ var logger *Log
 
 // Log 默认会使用zap作为日志输出引擎. Log集成了日志切割的功能。默认文件大小1024M，自动压缩
 // 最大有3个文件备份，备份保存时间7天。默认不会打印日志被调用的文文件名和位置;
-// 输出:日志默认会被分成五类文件：xxx.log.DEBUG，xxx.log.INFO, xxx.log.WARN, xxx.log.ERROR, xxx.log.Request
-// error,panic都会打印在xxx.log.ERROR. 所有的请求都会打在xxx.log.Request
+// 输出:日志默认会被分成两类文件：.log, .log.Request;可以通过SetLogType和SetRequestType函数修改两类文件的存储格式
+// debug,info,warn,error,panic都会打印在xxx.log. 所有的请求都会打在xxx.log.Request
 // Adapter:经过比对现在流行的日志库：zap, logrus, zerolog; logrus 虽说格式化，插件化良好，但是
 // 其内部实现锁竞争太过剧烈，性能不好. zap 性能好，格式一般， zerolog性能没有zap好， 相比
 // 来说就没啥突出优点了
@@ -28,7 +28,7 @@ var logger *Log
 type Log struct {
 	Path           string
 	Level          string
-	NeedRequestLog bool // 是否需要request.log
+	NeedRequestLog bool // 是否需要独立的Request日志
 	adapters       map[string]*zapAdapter
 }
 
@@ -40,6 +40,25 @@ type logOptionFunc func(*Log)
 
 func (f logOptionFunc) apply(log *Log) {
 	f(log)
+}
+
+func SetLogType(logType string) LogOption {
+	return logOptionFunc(func(log *Log) {
+		for k, _ := range log.adapters {
+			if k == FileTypeLog {
+				log.adapters[k].setLogType(logType)
+			}
+		}
+	})
+}
+func SetRequestType(logType string) LogOption {
+	return logOptionFunc(func(log *Log) {
+		for k, _ := range log.adapters {
+			if k == FileTypeRequest {
+				log.adapters[k].setLogType(logType)
+			}
+		}
+	})
 }
 
 func SetMaxFileSize(size int) LogOption {
@@ -88,10 +107,10 @@ func SetCallerDeep(callerDeep int) LogOption {
 		}
 	})
 }
+
 // Init init logger
 func Init(path, level string, needRequestLog bool, options ...LogOption) {
 	logger = &Log{Path: path, Level: level}
-	logger.NeedRequestLog = needRequestLog
 	logger.createFiles(level, needRequestLog, options...)
 }
 
@@ -136,8 +155,9 @@ func (l *Log) maxAge(level string) int {
 
 func (l *Log) createFiles(level string, needRequestLog bool, options ...LogOption) {
 	adapters := make(map[string]*zapAdapter, 2)
-	adapters[FileTypeLog] = NewZapAdapter(fmt.Sprintf("%s", l.Path), level)
-	adapters[FileTypeRequest] = NewZapAdapter(fmt.Sprintf("%s.Request", l.Path), InfoLevel)
+	adapters[FileTypeLog] = NewZapAdapter(fmt.Sprintf("%s", l.Path), level, "json")
+	adapters[FileTypeRequest] = NewZapAdapter(fmt.Sprintf("%s.Request", l.Path), InfoLevel, "csv")
+	l.NeedRequestLog = needRequestLog
 	l.adapters = adapters
 
 	// options为回调函数,用来作为log对象的中间件进行调用
@@ -147,7 +167,7 @@ func (l *Log) createFiles(level string, needRequestLog bool, options ...LogOptio
 	}
 
 	for _, adapter := range adapters {
-		adapter.Build()
+		adapter.Init()
 	}
 
 }
@@ -195,8 +215,6 @@ func Info(args ...interface{}) {
 	}
 }
 
-
-
 func Infof(template string, args ...interface{}) {
 	if logger == nil {
 		return
@@ -225,7 +243,7 @@ func Println(v ...interface{}) {
 	Info(v)
 }
 func Printf(format string, v ...interface{}) {
-	Infof(format,v)
+	Infof(format, v)
 }
 
 func Warn(args ...interface{}) {
