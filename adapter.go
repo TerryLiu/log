@@ -1,6 +1,9 @@
 package log
 
 import (
+	"path/filepath"
+	"strings"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -47,11 +50,21 @@ func (z *zapAdapter) setCaller(caller bool) {
 func (z *zapAdapter) setCallerDeep(callerDeep int) {
 	z.CallerDeep = callerDeep
 }
-func NewZapAdapter(path, level, logType string) *zapAdapter {
+func EnsureCSVSuffix(filePath string) string {
+	ext := strings.ToLower(filepath.Ext(filePath))
+
+	if ext != ".csv" {
+		// filePath = strings.TrimSuffix(filePath, ext)
+		filePath = filePath + ".csv"
+	}
+
+	return filePath
+}
+func NewZapAdapter(path, level, contentType string) *zapAdapter {
 	return &zapAdapter{
 		Path:        path,
 		Level:       level,
-		LogType:     logType,
+		LogType:     contentType,
 		MaxFileSize: 500,
 		MaxBackups:  5,
 		MaxAge:      7,
@@ -75,10 +88,12 @@ func (zapAdapter *zapAdapter) createLumberjackHook() *lumberjack.Logger {
 
 // 根据配置的参数来初始化日志对象
 func (zapAdapter *zapAdapter) Init() {
+	if zapAdapter.LogType == "csv" {
+		zapAdapter.Path = EnsureCSVSuffix(zapAdapter.Path)
+	}
 	w := zapcore.AddSync(zapAdapter.createLumberjackHook())
 
 	var level zapcore.Level
-	var conf zapcore.EncoderConfig
 	var cnf zapcore.Encoder
 
 	switch zapAdapter.Level {
@@ -95,18 +110,18 @@ func (zapAdapter *zapAdapter) Init() {
 	default:
 		level = zap.InfoLevel
 	}
+
+	conf := zap.NewProductionEncoderConfig()
+	conf.EncodeTime = zapcore.ISO8601TimeEncoder
 	// 除非指定了csv, 否则默认使用json内容格式
 	switch zapAdapter.LogType {
 	case "csv":
-
+		cnf = NewCSVEncoder(conf)
 	default:
-		conf = zap.NewProductionEncoderConfig()
-		conf.EncodeTime = zapcore.ISO8601TimeEncoder
 		cnf = zapcore.NewJSONEncoder(conf)
 	}
 
 	core := zapcore.NewCore(cnf, w, level)
-
 	zapAdapter.logger = zap.New(core)
 	if zapAdapter.Caller {
 		zapAdapter.logger = zapAdapter.logger.WithOptions(zap.AddCaller(), zap.AddCallerSkip(zapAdapter.CallerDeep))

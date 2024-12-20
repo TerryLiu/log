@@ -10,9 +10,10 @@ const (
 	WarnLevel  = "warn"
 	ErrorLevel = "error"
 	PanicLevel = "panic"
-
-	FileTypeLog     = "log"
-	FileTypeRequest = "request_log"
+)
+const (
+	FileTypeLog = iota
+	FileTypeRequest
 )
 
 var logger *Log
@@ -29,7 +30,7 @@ type Log struct {
 	Path           string
 	Level          string
 	NeedRequestLog bool // 是否需要独立的Request日志
-	adapters       map[string]*zapAdapter
+	adapters       []*zapAdapter
 }
 
 type LogOption interface {
@@ -42,20 +43,23 @@ func (f logOptionFunc) apply(log *Log) {
 	f(log)
 }
 
-func SetLogType(logType string) LogOption {
+// contentType=json;csv
+func SetLogType(contentType string) LogOption {
 	return logOptionFunc(func(log *Log) {
 		for k, _ := range log.adapters {
 			if k == FileTypeLog {
-				log.adapters[k].setLogType(logType)
+				log.adapters[k].setLogType(contentType)
 			}
 		}
 	})
 }
-func SetRequestType(logType string) LogOption {
+
+// contentType=json;csv
+func SetRequestType(contentType string) LogOption {
 	return logOptionFunc(func(log *Log) {
 		for k, _ := range log.adapters {
 			if k == FileTypeRequest {
-				log.adapters[k].setLogType(logType)
+				log.adapters[k].setLogType(contentType)
 			}
 		}
 	})
@@ -125,36 +129,18 @@ func Sync() {
 	}
 }
 
-func (l *Log) isCaller(level string) bool {
-	if v, ok := l.adapters[level]; ok {
-		return v.Caller
-	}
-	return false
-}
-
-func (l *Log) maxFileSize(level string) int {
-	if v, ok := l.adapters[level]; ok {
-		return v.MaxFileSize
-	}
-	return 0
-}
-
-func (l *Log) maxBackups(level string) int {
-	if v, ok := l.adapters[level]; ok {
-		return v.MaxBackups
-	}
-	return 0
-}
-
-func (l *Log) maxAge(level string) int {
-	if v, ok := l.adapters[level]; ok {
-		return v.MaxAge
-	}
-	return 0
-}
+//
+// func (l *Log) maxFileSize(fileType int) int {
+// 	if fileType==FileTypeLog || fileType==FileTypeRequest {
+// 		return l.adapters[logType].MaxFileSize
+// 	}
+// 	return 0
+// }
+//
 
 func (l *Log) createFiles(level string, needRequestLog bool, options ...LogOption) {
-	adapters := make(map[string]*zapAdapter, 2)
+	adapters := make([]*zapAdapter, 2)
+	// adapters := make(map[string]*zapAdapter, 2)
 	adapters[FileTypeLog] = NewZapAdapter(fmt.Sprintf("%s", l.Path), level, "json")
 	adapters[FileTypeRequest] = NewZapAdapter(fmt.Sprintf("%s.Request", l.Path), InfoLevel, "csv")
 	l.NeedRequestLog = needRequestLog
@@ -177,10 +163,7 @@ func Debug(args ...interface{}) {
 	if logger == nil {
 		return
 	}
-
-	if debugAdapter, ok := logger.adapters[FileTypeLog]; ok {
-		debugAdapter.Debug(args...)
-	}
+	logger.adapters[FileTypeLog].Debug(args...)
 }
 
 // Debugf 使用方法：log.Debugf("test:%s", err)
@@ -188,10 +171,7 @@ func Debugf(template string, args ...interface{}) {
 	if logger == nil {
 		return
 	}
-
-	if debugAdapter, ok := logger.adapters[FileTypeLog]; ok {
-		debugAdapter.Debugf(template, args...)
-	}
+	logger.adapters[FileTypeLog].Debugf(template, args...)
 }
 
 // Debugw 使用方法：log.Debugw("test", "field1", "value1", "field2", "value2")
@@ -200,9 +180,7 @@ func Debugw(msg string, keysAndValues ...interface{}) {
 		return
 	}
 
-	if debugAdapter, ok := logger.adapters[FileTypeLog]; ok {
-		debugAdapter.Debugw(msg, keysAndValues...)
-	}
+	logger.adapters[FileTypeLog].Debugw(msg, keysAndValues...)
 }
 
 func Info(args ...interface{}) {
@@ -210,9 +188,7 @@ func Info(args ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Info(args...)
-	}
+	logger.adapters[FileTypeLog].Info(args...)
 }
 
 func Infof(template string, args ...interface{}) {
@@ -220,9 +196,7 @@ func Infof(template string, args ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Infof(template, args...)
-	}
+	logger.adapters[FileTypeLog].Infof(template, args...)
 }
 
 func Infow(msg string, keysAndValues ...interface{}) {
@@ -230,9 +204,7 @@ func Infow(msg string, keysAndValues ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Infow(msg, keysAndValues...)
-	}
+	logger.adapters[FileTypeLog].Infow(msg, keysAndValues...)
 }
 
 func Output(calldepth int, s string) error {
@@ -251,9 +223,7 @@ func Warn(args ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Warn(args...)
-	}
+	logger.adapters[FileTypeLog].Warn(args...)
 }
 
 func Warnf(template string, args ...interface{}) {
@@ -261,9 +231,7 @@ func Warnf(template string, args ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Warnf(template, args...)
-	}
+	logger.adapters[FileTypeLog].Warnf(template, args...)
 }
 
 func Warnw(msg string, keysAndValues ...interface{}) {
@@ -271,9 +239,7 @@ func Warnw(msg string, keysAndValues ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Warnw(msg, keysAndValues...)
-	}
+	logger.adapters[FileTypeLog].Warnw(msg, keysAndValues...)
 }
 
 func Error(args ...interface{}) {
@@ -281,9 +247,7 @@ func Error(args ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Error(args...)
-	}
+	logger.adapters[FileTypeLog].Error(args...)
 }
 
 func Errorf(template string, args ...interface{}) {
@@ -291,9 +255,7 @@ func Errorf(template string, args ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Errorf(template, args...)
-	}
+	logger.adapters[FileTypeLog].Errorf(template, args...)
 }
 
 func Errorw(msg string, keysAndValues ...interface{}) {
@@ -301,9 +263,7 @@ func Errorw(msg string, keysAndValues ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Errorw(msg, keysAndValues...)
-	}
+	logger.adapters[FileTypeLog].Errorw(msg, keysAndValues...)
 }
 
 func Panic(args ...interface{}) {
@@ -311,9 +271,7 @@ func Panic(args ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Panic(args...)
-	}
+	logger.adapters[FileTypeLog].Panic(args...)
 }
 
 func Panicf(template string, args ...interface{}) {
@@ -321,9 +279,7 @@ func Panicf(template string, args ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Panicf(template, args...)
-	}
+	logger.adapters[FileTypeLog].Panicf(template, args...)
 }
 
 func Panicw(msg string, keysAndValues ...interface{}) {
@@ -331,9 +287,7 @@ func Panicw(msg string, keysAndValues ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Panicw(msg, keysAndValues...)
-	}
+	logger.adapters[FileTypeLog].Panicw(msg, keysAndValues...)
 }
 
 func Fatal(args ...interface{}) {
@@ -341,9 +295,7 @@ func Fatal(args ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Fatal(args...)
-	}
+	logger.adapters[FileTypeLog].Fatal(args...)
 }
 
 func Fatalf(template string, args ...interface{}) {
@@ -351,9 +303,7 @@ func Fatalf(template string, args ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Fatalf(template, args...)
-	}
+	logger.adapters[FileTypeLog].Fatalf(template, args...)
 }
 
 func Fatalw(msg string, keysAndValues ...interface{}) {
@@ -361,17 +311,25 @@ func Fatalw(msg string, keysAndValues ...interface{}) {
 		return
 	}
 
-	if adapter, ok := logger.adapters[FileTypeLog]; ok {
-		adapter.Fatalw(msg, keysAndValues...)
-	}
+	logger.adapters[FileTypeLog].Fatalw(msg, keysAndValues...)
 }
 
 // 参数keysAndValues为一个切片,元素1为key,元素2为val;以此类推.
-func RequestLogInfow(keysAndValues ...interface{}) {
+func RequestLogInfo(keysAndValues ...interface{}) {
 	if logger == nil || !logger.NeedRequestLog {
 		return
 	}
-	if adapter, ok := logger.adapters[FileTypeRequest]; ok {
-		adapter.Info(keysAndValues...)
+	logger.adapters[FileTypeRequest].Info(keysAndValues...)
+}
+func RequestLogInfof(template string, args ...interface{}) {
+	if logger == nil || !logger.NeedRequestLog {
+		return
 	}
+	logger.adapters[FileTypeRequest].Infof(template, args...)
+}
+func RequestLogInfow(template string, keysAndValues ...interface{}) {
+	if logger == nil || !logger.NeedRequestLog {
+		return
+	}
+	logger.adapters[FileTypeRequest].Infow(template, keysAndValues...)
 }
