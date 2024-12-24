@@ -438,8 +438,10 @@ func (enc *csvEncoder) truncate() {
 func (enc *csvEncoder) AddField(field zapcore.Field) {
 	enc.addElementSeparator()
 	enc.buf.AppendByte('"')
-	enc.safeAddString(field.Key)
-	enc.buf.AppendByte(':')
+	if field.Key != "" {
+		enc.safeAddString(field.Key)
+		enc.buf.AppendByte(':')
+	}
 	enc.safeAddString(field.String)
 	enc.buf.AppendByte('"')
 }
