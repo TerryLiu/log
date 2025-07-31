@@ -15,7 +15,7 @@ func main() {
 	// 参数5:从这个参数开始,后面的参数都是LogOption结构的回调函数,比如下面的例子为设置是否显示Caller,还可以使用log.SetCallerDeep来设置深度；用log.SetLogType("csv")可将普通日志格式设置为csv, 用log.SetRequestType("json")可将请求日志设置为json格式；
 	// 参数6:用log.SetMaxFileSize(2)举例,设置日志大小为2MB,默认是500MB.顺便提一句,最大文件个数默认是5个,最大文件保留天数是7天.
 	// 参数7:参考5....
-	log.Init("./test.log", log.DebugLevel, true, true, log.SetCaller(true), log.SetLogType("csv"), log.SetMaxFileSize(2), log.SetCompress(true))
+	log.Init("./test.log", log.DebugLevel, true, false, log.SetCaller(true), log.SetLogType("csv"), log.SetMaxFileSize(2), log.SetCompress(true))
 
 	// 输出info级别的日志
 	log.Debug("哈喽,艾瑞巴蒂!我是带体积限制功能的滚动异步日志套装.基于Zap和lumberjack.")
